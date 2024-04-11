@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    depends_on:
+      - influxdb
+    ports:
+      - "${HTTP_PORT}:${HTTP_PORT}"
+    environment:
+      INFLUXDB_ORG: ${INFLUXDB_ORG}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+      INFLUXDB_URL: ${INFLUXDB_URL}
+      MQTT_BROKER: ${MQTT_BROKER}
+      HTTP_PORT: ${HTTP_PORT}
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+
+  influxdb:
+    image: influxdb:latest
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    ports:
+      - "${INFLUXDB_PORT}:${INFLUXDB_PORT}"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: ${DOCKER_INFLUXDB_INIT_MODE}
+      DOCKER_INFLUXDB_INIT_USERNAME: ${DOCKER_INFLUXDB_INIT_USERNAME}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${DOCKER_INFLUXDB_INIT_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${DOCKER_INFLUXDB_INIT_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_URL: ${INFLUXDB_URL}
+      INFLUXDB_PORT: ${INFLUXDB_PORT}
+      MQTT_BROKER: ${MQTT_BROKER}
+      HTTP_PORT: ${HTTP_PORT}
+
+volumes:
+  influxdb-data:
