@@ -10,6 +10,7 @@ import (
 type BusDataSubscriber interface {
 	SubscribeToTopic(topic string) error
 	mqttMessageHandler(client mqtt.Client, msg mqtt.Message)
+	ListenToAllTopics()
 }
 
 // busDataSubscriber is an MQTT client that subscribes to a specific topic and sends the data to a channel
@@ -39,7 +40,7 @@ func NewBusDataSubscriber(mqttBroker string, dataChannel chan models.BusData) (B
 }
 
 // mqttMessageHandler handles incoming MQTT messages and sends the data to the data channel
-func (m *busDataSubscriber) mqttMessageHandler(client mqtt.Client, msg mqtt.Message) {
+func (m *busDataSubscriber) mqttMessageHandler(_ mqtt.Client, msg mqtt.Message) {
 	busData := parseTopic(msg.Topic())
 	m.dataChannel <- busData
 }
@@ -77,6 +78,13 @@ func (m *busDataSubscriber) SubscribeToTopic(topic string) error {
 	}
 	fmt.Printf("Subscribed to topic: %s\n", topic)
 	return nil
+}
+
+// ListenToAllTopics subscribes to all topics
+func (m *busDataSubscriber) ListenToAllTopics() {
+	if token := m.client.Subscribe("#", 0, m.mqttMessageHandler); token.Wait() && token.Error() != nil {
+		fmt.Printf("Error subscribing to all topics: %v\n", token.Error())
+	}
 }
 
 var _ BusDataSubscriber = (*busDataSubscriber)(nil)

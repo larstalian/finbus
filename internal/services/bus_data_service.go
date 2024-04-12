@@ -10,8 +10,10 @@ import (
 )
 
 type BusDataService interface {
-	QueryBusesNear(lat, lon string) ([]models.BusData, error)
+	QueryBusesNear(lat, lon float64) ([]models.BusData, error)
 	WriteBusData(data models.BusData) error
+	SubscribeToBusUpdates(coords models.ClientCoords) (chan models.BusData, error)
+	GetBusQueryFromStops(stops []models.BusData) (models.BusData, error)
 }
 
 type busDataService struct {
@@ -40,8 +42,8 @@ func (s *busDataService) processData() {
 }
 
 // QueryBusesNear queries the buses near the specified coordinates
-func (s *busDataService) QueryBusesNear(lat, lon string) ([]models.BusData, error) {
-	geohash, err := config.ConvertToCustomGeohash(lat, lon)
+func (s *busDataService) QueryBusesNear(lat, lon float64) ([]models.BusData, error) {
+	geohash, err := config.GetGeohash(lat, lon)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +53,24 @@ func (s *busDataService) QueryBusesNear(lat, lon string) ([]models.BusData, erro
 // WriteBusData writes bus telemetry data to the database
 func (s *busDataService) WriteBusData(data models.BusData) error {
 	return s.influxDBManager.WriteToInfluxDB(data)
+}
+
+func (s *busDataService) SubscribeToBusUpdates(coords models.ClientCoords) (chan models.BusData, error) {
+	geohashPosition, err := config.GetGeohash(coords.Latitude, coords.Longitude)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.mqttBroker.SubscribeToTopic(geohashPosition)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.dataChannel, nil
+}
+
+func (s *busDataService) GetBusQueryFromStops(stops []models.BusData) (models.BusData, error) {
+	return s.influxDBManager.FindBusesFromStops(stops)
 }
 
 var _ BusDataService = (*busDataService)(nil)

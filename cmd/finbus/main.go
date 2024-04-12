@@ -7,6 +7,7 @@ import (
 	"finbus/internal/services"
 	"finbus/internal/transport/mqtt"
 	"finbus/internal/transport/rest"
+	"finbus/internal/transport/ws"
 	"fmt"
 	"github.com/gorilla/mux"
 	"log"
@@ -28,29 +29,29 @@ func main() {
 	// Initialize the Bus Data Service
 	mqttBroker := config.GetEnv("MQTT_BROKER", "mqtts://mqtt.digitransit.fi:8883")
 
+	// Initialize MQTT client and connect to the broker
 	mqttClient, err := mqtt.NewBusDataSubscriber(mqttBroker, dataChannel)
 	busDataService := services.NewBusDataService(influxdbClient, dataChannel, mqttClient)
-	// Initialize MQTT client and connect to the broker
+	busHandler := rest.NewBusHandler(busDataService)
+
+	webSocketHandler := ws.NewWebSocketHandler(busDataService)
+
 	if err != nil {
 		log.Fatalf("Error creating MQTT client: %v", err)
 	}
 
-	// Subscribe to MQTT topics using the MQTT client
-	if err := mqttClient.SubscribeToTopic("topic1"); err != nil {
-		log.Fatalf("Error subscribing to topic: %v", err)
-	}
-
 	// Setup HTTP server and routes, passing the bus data service to the REST handler
 	router := mux.NewRouter()
-	busHandler := rest.NewBusHandler(busDataService) // Adjusted to pass busDataService
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, "Successfully started finbus service\n")
 	})
 
-	router.HandleFunc("/api/busdata", busHandler.HandleQueryBusesNear).Methods("GET")
+	router.HandleFunc("/api/get-busses", busHandler.HandleQueryBusesNear).Methods("GET")
+	router.HandleFunc("/api/stops/get-busses/", busHandler.HandleGetBusesFromStops).Methods("POST")
+	router.HandleFunc("/ws/bus-updates", webSocketHandler.HandleBusUpdatesWS)
 
 	// Start the HTTP server
 	httpPort := config.GetEnv("HTTP_PORT", "8080")
-	log.Printf("HTTP server listening on port %s", httpPort)
+	log.Printf("Websocket server listening on port %s", httpPort)
 	log.Fatal(http.ListenAndServe(":"+httpPort, router))
 }
