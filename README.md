@@ -1,8 +1,7 @@
 # Fibnus
 
 Fibnus is a server application designed to provide real-time tracking of Finnish buses using MQTT protocol, with data
-accessibility extended through a REST API and a WebSocket interface. This system is ideal for developers looking to
-integrate live transportation data into apps or services focused on Finnish transit systems.
+accessibility extended through a REST API and a WebSocket interface.
 
 ## Features
 
