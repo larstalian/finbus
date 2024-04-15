@@ -59,6 +59,6 @@ go install github.com/joho/godotenv/cmd/godotenv@latest
 
 Unit tests.
 
-use proto
+use protobuf
 
 better error handling for database not running
